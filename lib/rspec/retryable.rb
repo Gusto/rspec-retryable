@@ -1,10 +1,21 @@
 # frozen_string_literal: true
 
-require_relative "retryable/version"
+require 'rspec/retryable/version'
+require 'rspec/retryable/example'
+require 'rspec/retryable/handlers'
 
-module Rspec
+module RSpec
   module Retryable
-    class Error < StandardError; end
-    # Your code goes here...
+    class << self
+      def handlers
+        @handlers ||= Handlers.new
+      end
+
+      def bind
+        require 'rspec/core'
+
+        ::RSpec::Core::Example.prepend(RSpec::Retryable::Example)
+      end
+    end
   end
 end

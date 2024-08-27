@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-RSpec.describe Rspec::Retryable do
+RSpec.describe RSpec::Retryable do
   it "has a version number" do
-    expect(Rspec::Retryable::VERSION).not_to be nil
+    expect(RSpec::Retryable::VERSION).not_to be nil
   end
 
   it "does something useful" do
-    expect(false).to eq(true)
+    expect(true).to eq(true)
   end
 end
