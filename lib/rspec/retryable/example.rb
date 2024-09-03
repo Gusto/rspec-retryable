@@ -28,6 +28,8 @@ module RSpec
         if @payload.retry
           # Replaced the final result by the retry result
           @payload.result = retry_example
+          # Update the execution result status to the new state
+          execution_result.status = @payload.state
         end
 
         # Notify reporter only if it's not handled by the handlers
