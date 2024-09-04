@@ -11,6 +11,10 @@ module RSpec
         @handlers << klass.new(*args, **kwargs)
       end
 
+      def reset!
+        @handlers.clear
+      end
+
       def invoke(payload)
         traverse(0, payload)
       end
