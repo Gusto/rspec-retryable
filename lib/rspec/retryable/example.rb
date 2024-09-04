@@ -28,8 +28,6 @@ module RSpec
         if @payload.retry
           # Replaced the final result by the retry result
           @payload.result = retry_example
-          # Update the execution result status to the new state
-          execution_result.status = @payload.state
         end
 
         # Notify reporter only if it's not handled by the handlers
@@ -65,7 +63,16 @@ module RSpec
         # Use same reporter from example instead of the one passing in to behave like
         # a fresh new example.
 
-        new_example.run(instance, reporter)
+        result = new_example.run(instance, reporter)
+        # Update the execution result status to the new state from retry
+        execution_result.status = new_example.execution_result.status
+
+        if execution_result.status == :failed
+          # Sets exception when retry failed
+          execution_result.exception = new_example.execution_result.exception
+        end
+
+        result
       end
 
       def notify_reporter
