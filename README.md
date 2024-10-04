@@ -1,35 +1,125 @@
 # RSpec::Retryable
 
-TODO: Delete this and the text below, and describe your gem
-
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/rspec/retryable`. To experiment with that code, run `bin/console` for an interactive prompt.
+RSpec Retryable is a gem that allows you to retry RSpec examples based on custom handlers. This can be useful for handling flaky tests or tests that depend on external systems.
 
 ## Installation
 
-TODO: Replace `UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG` with your gem name right after releasing it to RubyGems.org. Please do not do it earlier due to security reasons. Alternatively, replace this section with instructions to install your gem from git if you don't plan to release to RubyGems.org.
-
-Install the gem and add to the application's Gemfile by executing:
+Install the gem and add it to the application's Gemfile by executing:
 
 ```bash
-bundle add UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+$ bundle add rspec-retryable
 ```
 
 If bundler is not being used to manage dependencies, install the gem by executing:
 
 ```bash
-gem install UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+$ gem install rspec-retryable
 ```
 
 ## Usage
 
-TODO: Write usage instructions here
+Simply calling `RSpec::Retryable.bind` enables the ability to retry on test examples. You can add your first handler by using `RSpec::Retryable.handlers.register(SomeHandler)`.
+
+#### Example
+
+Create a file `retry_setup.rb` with the following content:
+
+```retry_setup.rb
+require 'rspec/retryable'
+
+class SimpleRetryHandler
+  MAX_RETRIES = 2
+
+  def initialize
+    # Initialization code here
+    @retries = Hash.new(0)
+  end
+
+  def call(payload)
+    # use payload to set retry or not based on RSpec example state
+
+    if @retries[payload.example.id] < MAX_RETRIES
+      # Set `payload.retry` to `true` to enable rspec retry
+      payload.retry = true if payload.state == :failed
+    else
+      # Pass down to next handler
+      yield
+    end
+  end
+end
+
+RSpec::Retryable.bind
+
+RSpec::Retryable.handlers.register(SimpleRetryHandler)
+```
+
+Then requires the setup in your `spec_helper.rb`
+
+```spec_helper.rb
+require 'retry_setup'
+
+RSpec.configure do |config|
+  # ... some rspec setup
+end
+```
+
+`payload` holds below information:
+
+- `example`: (read-only) RSpec example
+- `state`: Current state of the example, can be alterted by handlers
+- `notify`: default to `true`, if set to `false`, reporter will not be notified
+- `result`: this is the final result returned to RSpec runner
+- `retry`: default to `false`, if set to `true`, the example will be retried
+
+#### Interact with multiple Handlers
+
+Since we use [Chain-of-responsibility pattern](http://en.wikipedia.org/wiki/Chain-of-responsibility_pattern) to define handlers, it's possible to chain handlers with a payload passing down as `Rack::Builder` or `ActionDispatch::MiddlewareStack` to manage a stack of handlers, for example:
+
+```retry_setup.rb
+RSpec::Retryable.bind
+
+class FirstRetryHandler
+  def call(payload)
+    puts "-> First handler in"
+
+    # ... do something based on payload state ...
+
+    yield
+
+    puts "<- First handler out"
+  end
+end
+
+# This handler stops retry when expected condition met
+class SecondRetryHandler
+  def call(payload)
+    puts "-> Second handler in"
+
+    # ... do something based on payload state ...
+
+    yield
+
+    puts "<- Second handler out"
+  end
+end
+
+RSpec::Retryable.handlers.register(FirstRetryHandler)
+RSpec::Retryable.handlers.register(SecondRetryHandler)
+```
+
+When execute tests, the output will look like:
+
+```
+-> First handler in
+-> Second handler in
+<- Second handler out
+<- First handler out
+```
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
-
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+After checking out the repo, run `bin/setup` to install dependencies. Then, run `bin/rspec` to run the tests.
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/ngan/rspec-retryable.
+Bug reports and pull requests are welcome on GitHub at https://github.com/Gusto/rspec-retryable.
