@@ -56,6 +56,10 @@ module RSpec
         @payload.notify = false
         # Duplicate the example for re-run
         new_example = duplicate_with(metadata)
+        # The shared_group_inclusion_backtrace was reserved from duplication, but we need to keep as-is for
+        # reporter/formatter to show the correct backtrace.
+        # https://github.com/rspec/rspec/blob/0ae9cc43163507458494e631ca8e473bf24cdb26/rspec-core/lib/rspec/core/metadata.rb#L341
+        new_example.metadata[:shared_group_inclusion_backtrace] = metadata[:shared_group_inclusion_backtrace]
         new_example.instance_variable_set(:@id, id)
         # Taken from https://github.com/rspec/rspec-core/blob/main/lib/rspec/core/example_group.rb#L644-L646
         instance = new_example.example_group.new(new_example.inspect_output)
